@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+
+<meta name="viewport"
+      content="width=device-width,
+      initial-scale=1.0,
+      maximum-scale=1.0,
+      user-scalable=no">
+
+<meta name="theme-color" content="#111111">
+
+<title>画境 AI</title>
+
+<style>
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+    -webkit-tap-highlight-color:transparent;
+}
+
+html,body{
+    width:100%;
+    height:100%;
+    overflow:hidden;
+    background:#111;
+    font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+}
+
+button{
+    border:0;
+    background:none;
+    color:white;
+    font-size:15px;
+}
+
+#app{
+    width:100%;
+    height:100%;
+    display:flex;
+    flex-direction:column;
+}
+
+/* 顶部 */
+
+.topbar{
+    height:54px;
+    background:#171717;
+    color:white;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:0 12px;
+    border-bottom:1px solid #292929;
+    flex-shrink:0;
+}
+
+.logo{
+    font-size:18px;
+    font-weight:700;
+}
+
+.logo span{
+    color:#aaa;
+    font-size:12px;
+    margin-left:5px;
+}
+
+.top-actions{
+    display:flex;
+    gap:8px;
+}
+
+.top-btn{
+    background:#252525;
+    border-radius:9px;
+    padding:8px 11px;
+}
+
+.top-btn:active{
+    background:#333;
+}
+
+/* 画布区域 */
+
+.workspace{
+    flex:1;
+    position:relative;
+    background:#303030;
+    overflow:hidden;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+}
+
+#canvasWrap{
+    position:relative;
+    width:100%;
+    height:100%;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    overflow:hidden;
+}
+
+canvas{
+    background:white;
+    touch-action:none;
+    box-shadow:0 3px 18px rgba(0,0,0,.45);
+}
+
+/* 左侧工具栏 */
+
+.tools{
+    position:absolute;
+    left:10px;
+    top:12px;
+
+    width:48px;
+
+    background:rgba(20,20,20,.92);
+    border:1px solid #333;
+
+    border-radius:14px;
+
+    padding:6px;
+
+    display:flex;
+    flex-direction:column;
+
+    gap:6px;
+
+    z-index:20;
+}
+
+.tool{
+    width:36px;
+    height:36px;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    border-radius:9px;
+
+    font-size:19px;
+}
+
+.tool.active{
+    background:#444;
+}
+
+.tool:active{
+    background:#555;
+}
+
+/* 底部控制栏 */
+
+.bottom{
+    height:64px;
+
+    background:#171717;
+
+    display:flex;
+    align-items:center;
+
+    padding:0 12px;
+
+    gap:12px;
+
+    border-top:1px solid #292929;
+
+    flex-shrink:0;
+}
+
+.color-box{
+    width:38px;
+    height:38px;
+
+    border-radius:10px;
+
+    overflow:hidden;
+
+    border:2px solid white;
+}
+
+#colorPicker{
+    width:100%;
+    height:100%;
+    border:0;
+    padding:0;
+}
+
+.size-control{
+    display:flex;
+    align-items:center;
+    gap:8px;
+
+    color:#ddd;
+}
+
+#sizeRange{
+    width:100px;
+}
+
+.value{
+    width:32px;
+    text-align:center;
+    color:#aaa;
+    font-size:13px;
+}
+
+.ai-btn{
+    margin-left:auto;
+
+    background:#3b3b3b;
+
+    padding:10px 13px;
+
+    border-radius:10px;
+
+    font-weight:600;
+}
+
+.ai-btn:active{
+    background:#555;
+}
+
+/* AI 评价弹窗 */
+
+.modal{
+    position:absolute;
+
+    left:50%;
+    top:50%;
+
+    transform:translate(-50%,-50%);
+
+    width:min(88%,380px);
+
+    background:#1b1b1b;
+
+    border:1px solid #444;
+
+    border-radius:18px;
+
+    padding:20px;
+
+    color:white;
+
+    z-index:100;
+
+    display:none;
+
+    box-shadow:0 10px 40px rgba(0,0,0,.5);
+}
+
+.modal.show{
+    display:block;
+}
+
+.modal h2{
+    font-size:20px;
+    margin-bottom:12px;
+}
+
+.ai-result{
+    line-height:1.7;
+    color:#ddd;
+    font-size:14px;
+}
+
+.close{
+    margin-top:15px;
+
+    width:100%;
+
+    padding:10px;
+
+    background:#333;
+
+    border-radius:10px;
+}
+
+/* 移动端 */
+
+@media(max-width:600px){
+
+    .topbar{
+        height:50px;
+    }
+
+    .logo{
+        font-size:16px;
+    }
+
+    .top-btn{
+        padding:7px 9px;
+        font-size:13px;
+    }
+
+    .bottom{
+        height:60px;
+        gap:8px;
+    }
+
+    #sizeRange{
+        width:75px;
+    }
+
+}
+</style>
+</head>
+
+<body>
+
+<div id="app">
+
+    <!-- 顶部 -->
+
+    <div class="topbar">
+
+        <div class="logo">
+            画境 AI
+            <span>Beta</span>
+        </div>
+
+        <div class="top-actions">
+
+            <button class="top-btn" onclick="undo()">
+                ↶
+            </button>
+
+            <button class="top-btn" onclick="redo()">
+                ↷
+            </button>
+
+            <button class="top-btn" onclick="clearCanvas()">
+                清空
+            </button>
+
+            <button class="top-btn" onclick="exportPNG()">
+                导出
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <!-- 工作区 -->
+
+    <div class="workspace">
+
+        <div id="canvasWrap">
+
+            <canvas id="canvas"></canvas>
+
+        </div>
+
+
+        <!-- 工具 -->
+
+        <div class="tools">
+
+            <button
+                class="tool active"
+                id="penTool"
+                onclick="setTool('pen')">
+                ✏️
+            </button>
+
+            <button
+                class="tool"
+                id="eraserTool"
+                onclick="setTool('eraser')">
+                🧽
+            </button>
+
+            <button
+                class="tool"
+                onclick="setTool('line')">
+                ／
+            </button>
+
+            <button
+                class="tool"
+                onclick="setTool('rect')">
+                □
+            </button>
+
+        </div>
+
+
+        <!-- AI评价 -->
+
+        <div id="aiModal" class="modal">
+
+            <h2>🤖 AI 作品评价</h2>
+
+            <div id="aiResult" class="ai-result">
+                正在分析你的作品……
+            </div>
+
+            <button
+                class="close"
+                onclick="closeAI()">
+                关闭
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <!-- 底部 -->
+
+    <div class="bottom">
+
+        <div class="color-box">
+
+            <input
+                type="color"
+                id="colorPicker"
+                value="#111111">
+
+        </div>
+
+
+        <div class="size-control">
+
+            <span>笔刷</span>
+
+            <input
+                type="range"
+                id="sizeRange"
+                min="1"
+                max="80"
+                value="8">
+
+            <span
+                class="value"
+                id="sizeValue">
+                8
+            </span>
+
+        </div>
+
+
+        <button
+            class="ai-btn"
+            onclick="evaluateArtwork()">
+            🤖 AI评价
+        </button>
+
+    </div>
+
+</div>
+
+
+<script>
+
+/* =========================
+   基础变量
+========================= */
+
+const canvas =
+    document.getElementById("canvas");
+
+const ctx =
+    canvas.getContext("2d");
+
+const wrap =
+    document.getElementById("canvasWrap");
+
+let drawing = false;
+
+let tool = "pen";
+
+let lastX = 0;
+let lastY = 0;
+
+let history = [];
+let historyIndex = -1;
+
+
+/* =========================
+   设置画布
+========================= */
+
+function resizeCanvas(){
+
+    const maxWidth =
+        wrap.clientWidth - 30;
+
+    const maxHeight =
+        wrap.clientHeight - 30;
+
+    let width =
+        Math.min(900,maxWidth);
+
+    let height =
+        Math.min(900,maxHeight);
+
+    /*
+       保持正方形画布
+    */
+
+    const size =
+        Math.min(width,height);
+
+    /*
+       使用高分辨率，
+       防止手机上画出来模糊
+    */
+
+    const ratio =
+        window.devicePixelRatio || 1;
+
+    canvas.style.width =
+        size + "px";
+
+    canvas.style.height =
+        size + "px";
+
+    canvas.width =
+        size * ratio;
+
+    canvas.height =
+        size * ratio;
+
+    ctx.setTransform(
+        ratio,
+        0,
+        0,
+        ratio,
+        0,
+        0
+    );
+
+    ctx.fillStyle =
+        "white";
+
+    ctx.fillRect(
+        0,
+        0,
+        size,
+        size
+    );
+
+    saveHistory();
+}
+
+window.addEventListener(
+    "resize",
+    resizeCanvas
+);
+
+
+/* =========================
+   获取坐标
+========================= */
+
+function getPosition(e){
+
+    const rect =
+        canvas.getBoundingClientRect();
+
+    let clientX;
+    let clientY;
+
+    if(e.touches){
+
+        clientX =
+            e.touches[0].clientX;
+
+        clientY =
+            e.touches[0].clientY;
+
+    }else{
+
+        clientX =
+            e.clientX;
+
+        clientY =
+            e.clientY;
+    }
+
+    return {
+
+        x:
+            clientX - rect.left,
+
+        y:
+            clientY - rect.top
+
+    };
+}
+
+
+/* =========================
+   开始绘画
+========================= */
+
+function startDrawing(e){
+
+    e.preventDefault();
+
+    drawing = true;
+
+    const pos =
+        getPosition(e);
+
+    lastX = pos.x;
+    lastY = pos.y;
+
+    /*
+       点击时也画一个点
+    */
+
+    drawPoint(
+        lastX,
+        lastY
+    );
+}
+
+
+/* =========================
+   绘画
+========================= */
+
+function draw(e){
+
+    if(!drawing)
+        return;
+
+    e.preventDefault();
+
+    const pos =
+        getPosition(e);
+
+    ctx.lineWidth =
+        Number(
+            document.getElementById(
+                "sizeRange"
+            ).value
+        );
+
+    ctx.lineCap =
+        "round";
+
+    ctx.lineJoin =
+        "round";
+
+    if(tool === "eraser"){
+
+        ctx.globalCompositeOperation =
+            "destination-out";
+
+    }else{
+
+        ctx.globalCompositeOperation =
+            "source-over";
+
+        ctx.strokeStyle =
+            document.getElementById(
+                "colorPicker"
+            ).value;
+    }
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+        lastX,
+        lastY
+    );
+
+    ctx.lineTo(
+        pos.x,
+        pos.y
+    );
+
+    ctx.stroke();
+
+    lastX = pos.x;
+    lastY = pos.y;
+}
+
+
+/* =========================
+   画点
+========================= */
+
+function drawPoint(x,y){
+
+    ctx.save();
+
+    ctx.globalCompositeOperation =
+        tool === "eraser"
+        ? "destination-out"
+        : "source-over";
+
+    ctx.fillStyle =
+        document.getElementById(
+            "colorPicker"
+        ).value;
+
+    ctx.beginPath();
+
+    ctx.arc(
+        x,
+        y,
+        Number(
+            document.getElementById(
+                "sizeRange"
+            ).value
+        ) / 2,
+        0,
+        Math.PI * 2
+    );
+
+    ctx.fill();
+
+    ctx.restore();
+}
+
+
+/* =========================
+   结束绘画
+========================= */
+
+function stopDrawing(){
+
+    if(!drawing)
+        return;
+
+    drawing = false;
+
+    ctx.globalCompositeOperation =
+        "source-over";
+
+    saveHistory();
+}
+
+
+/* =========================
+   鼠标 + 手机触摸
+========================= */
+
+canvas.addEventListener(
+    "mousedown",
+    startDrawing
+);
+
+canvas.addEventListener(
+    "mousemove",
+    draw
+);
+
+canvas.addEventListener(
+    "mouseup",
+    stopDrawing
+);
+
+canvas.addEventListener(
+    "mouseleave",
+    stopDrawing
+);
+
+
+canvas.addEventListener(
+    "touchstart",
+    startDrawing,
+    {passive:false}
+);
+
+canvas.addEventListener(
+    "touchmove",
+    draw,
+    {passive:false}
+);
+
+canvas.addEventListener(
+    "touchend",
+    stopDrawing,
+    {passive:false}
+);
+
+
+/* =========================
+   工具切换
+========================= */
+
+function setTool(name){
+
+    tool = name;
+
+    document
+        .querySelectorAll(".tool")
+        .forEach(
+            b => b.classList.remove("active")
+        );
+
+    if(name === "pen"){
+
+        document
+            .getElementById("penTool")
+            .classList.add("active");
+
+    }
+
+    if(name === "eraser"){
+
+        document
+            .getElementById("eraserTool")
+            .classList.add("active");
+
+    }
+}
+
+
+/* =========================
+   笔刷大小
+========================= */
+
+const sizeRange =
+    document.getElementById(
+        "sizeRange"
+    );
+
+const sizeValue =
+    document.getElementById(
+        "sizeValue"
+    );
+
+sizeRange.addEventListener(
+    "input",
+    () => {
+
+        sizeValue.textContent =
+            sizeRange.value;
+
+    }
+);
+
+
+/* =========================
+   清空
+========================= */
+
+function clearCanvas(){
+
+    if(
+        !confirm(
+            "确定要清空当前画布吗？"
+        )
+    )
+        return;
+
+    const rect =
+        canvas.getBoundingClientRect();
+
+    ctx.globalCompositeOperation =
+        "source-over";
+
+    ctx.fillStyle =
+        "white";
+
+    ctx.fillRect(
+        0,
+        0,
+        rect.width,
+        rect.height
+    );
+
+    saveHistory();
+}
+
+
+/* =========================
+   历史记录
+========================= */
+
+function saveHistory(){
+
+    /*
+       删除当前位置之后的历史
+    */
+
+    history =
+        history.slice(
+            0,
+            historyIndex + 1
+        );
+
+    history.push(
+        canvas.toDataURL()
+    );
+
+    historyIndex =
+        history.length - 1;
+
+    /*
+       最多保留30步
+    */
+
+    if(history.length > 30){
+
+        history.shift();
+
+        historyIndex--;
+
+    }
+}
+
+
+/* =========================
+   恢复历史
+========================= */
+
+function restoreHistory(index){
+
+    if(
+        index < 0 ||
+        index >= history.length
+    )
+        return;
+
+    const img =
+        new Image();
+
+    img.onload = () => {
+
+        const rect =
+            canvas.getBoundingClientRect();
+
+        ctx.clearRect(
+            0,
+            0,
+            rect.width,
+            rect.height
+        );
+
+        ctx.drawImage(
+            img,
+            0,
+            0,
+            rect.width,
+            rect.height
+        );
+
+    };
+
+    img.src =
+        history[index];
+}
+
+
+/* =========================
+   撤销
+========================= */
+
+function undo(){
+
+    if(historyIndex <= 0)
+        return;
+
+    historyIndex--;
+
+    restoreHistory(
+        historyIndex
+    );
+}
+
+
+/* =========================
+   重做
+========================= */
+
+function redo(){
+
+    if(
+        historyIndex >=
+        history.length - 1
+    )
+        return;
+
+    historyIndex++;
+
+    restoreHistory(
+        historyIndex
+    );
+}
+
+
+/* =========================
+   导出 PNG
+========================= */
+
+function exportPNG(){
+
+    const link =
+        document.createElement("a");
+
+    link.download =
+        "画境AI作品.png";
+
+    link.href =
+        canvas.toDataURL(
+            "image/png"
+        );
+
+    link.click();
+}
+
+
+/* =========================
+   AI评价
+========================= */
+
+function evaluateArtwork(){
+
+    const modal =
+        document.getElementById(
+            "aiModal"
+        );
+
+    const result =
+        document.getElementById(
+            "aiResult"
+        );
+
+    modal.classList.add("show");
+
+    result.innerHTML =
+        "正在分析你的作品……";
+
+    /*
+       第一版先模拟AI。
+       后面可以接真正的AI API。
+    */
+
+    setTimeout(() => {
+
+        result.innerHTML = `
+            <b>整体评价：</b><br>
+            这幅作品已经完成了基本构图，
+            画面具有一定的个人表达。<br><br>
+
+            <b>可以继续改进：</b><br>
+            ① 可以进一步明确主体；<br>
+            ② 尝试调整画面的明暗关系；<br>
+            ③ 可以加入一些细节，让画面更加丰富。<br><br>
+
+            <b>鼓励：</b><br>
+            不要过度追求一次画好。
+            能够持续完成作品，本身就是很重要的进步。
+        `;
+
+    },800);
+}
+
+
+/* =========================
+   关闭AI
+========================= */
+
+function closeAI(){
+
+    document
+        .getElementById(
+            "aiModal"
+        )
+        .classList.remove("show");
+}
+
+
+/* =========================
+   启动
+========================= */
+
+resizeCanvas();
+
+</script>
+
+</body>
+</html>
